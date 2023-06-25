@@ -3,23 +3,21 @@ import glob
 from fpdf import FPDF
 from pathlib import Path
 
-filepaths = glob.glob("invoices/*.xlsx")
+def load_from_exel(file): #* podzieliłem na żeby wczytanie było osobno 
+    filename = Path(file).stem
+    invoice_nr, date = filename.split("-")
+    df = pd.read_excel(file, sheet_name="Sheet 1")
+    return invoice_nr,date,df
 
-for filepath in filepaths:
-
+def make_pdf(invoice_nr,date,df): #* tutaj jest tylko praktycznie tworzenie pdf
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
-
-    filename = Path(filepath).stem
-    invoice_nr, date = filename.split("-")
 
     pdf.set_font(family="Times", size=16, style="B")
     pdf.cell(w=50, h=8, txt=f"Invoice nr.{invoice_nr}", ln=1)
 
     pdf.set_font(family="Times", size=16, style="B")
     pdf.cell(w=50, h=8, txt=f"Date:{date}", ln=1)
-
-    df = pd.read_excel(filepath, sheet_name="Sheet 1")
 
     # Add a header
     columns = df.columns
@@ -33,7 +31,7 @@ for filepath in filepaths:
     pdf.cell(w=30, h=8, txt=columns[4], border=1, ln=1)
 
     # Add rows to the table
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():     #! tutaj Ci zmieniłem jak nie używasz indexu to jak dasz _ to jest jako zmienna której nie planujesz używać
         pdf.set_font(family="Times", size=10)
         pdf.set_text_color(80, 80, 80)
         pdf.cell(w=30, h=8, txt=str(row["product_id"]), border=1)
@@ -59,5 +57,13 @@ for filepath in filepaths:
     pdf.set_font(family="Times", size=14, style="B")
     pdf.cell(w=25, h=8, txt=f"PythonHow")
     pdf.image("pythonhow.png", w=10)
-
+    filename=invoice_nr+"-"+date
     pdf.output(f"PDFs/{filename}.pdf")
+
+
+if __name__ == "__main__": # to jest tylko takie zabezpieczenie, żeby jakbyś zaimportował ten plik to się nie odpali bezpośrednio bo nie jest to główna funkcja 
+    files = glob.glob("invoices/*.xlsx")
+    #* starałem się trzymać w tym jak to robiłeś ty ale zmieniłem sposób żeby było bardziej czytelnie (jak będziesz miał duże ilości kodu to chcesz mieć elementy, które możesz używać wiele razy)
+    for file in files:
+        invoice_nr,date,df=load_from_exel(file)
+        make_pdf(invoice_nr,date,df)
